@@ -5,6 +5,7 @@ Records video for LinkedIn demo.
 Usage:
     ./isaaclab.bat -p play_snn_g1.py --checkpoint logs/snn_g1/.../model_best.pt
     ./isaaclab.bat -p play_snn_g1.py --checkpoint logs/snn_g1/.../model_best.pt --use_mlp
+    ./isaaclab.bat -p play_snn_g1.py --checkpoint logs/snn_g1/.../model_best.pt --video
 
 Author: Turan Yardimci
 """
@@ -18,13 +19,18 @@ parser.add_argument("--num_steps", type=int, default=8)
 parser.add_argument("--beta_init", type=float, default=0.85)
 parser.add_argument("--hidden_dims", type=int, nargs="+", default=[256, 128])
 parser.add_argument("--max_play_steps", type=int, default=2000)
+parser.add_argument("--video", action="store_true", help="Record video")
+parser.add_argument("--video_length", type=int, default=500, help="Video length in steps")
 
 from isaaclab.app import AppLauncher
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
+if args.video:
+    args.enable_cameras = True
 app_launcher = AppLauncher(args)
 simulation_app = app_launcher.app
 
+import os
 import torch
 import gymnasium as gym
 from snn_actor_critic import SNNActorCritic, MLPActorCritic
@@ -38,7 +44,20 @@ def main():
     device = "cuda:0"
 
     env_cfg = parse_env_cfg(ENV_ID, device=device, num_envs=args.num_envs)
-    env = gym.make(ENV_ID, cfg=env_cfg)
+    render_mode = "rgb_array" if args.video else None
+    env = gym.make(ENV_ID, cfg=env_cfg, render_mode=render_mode)
+
+    # Wrap for video recording
+    if args.video:
+        policy_type = "mlp" if args.use_mlp else "snn"
+        video_dir = os.path.join(os.path.dirname(args.checkpoint), f"videos_{policy_type}")
+        env = gym.wrappers.RecordVideo(
+            env, video_dir,
+            step_trigger=lambda step: step == 0,
+            video_length=args.video_length,
+            disable_logger=True,
+        )
+        print(f"[VIDEO] Recording to {video_dir}")
 
     obs_dim = env.observation_space["policy"].shape[-1]
     act_dim = env.action_space.shape[-1]
