@@ -154,11 +154,11 @@ class SNNPPO:
             
             # SNN-SPECIFIC: Reset membrane states for done environments
             if dones.any():
-                # We don't individually reset — just note that membrane 
-                # states will be slightly "contaminated" across episode 
-                # boundaries. For MVP this is fine. For paper-quality,
-                # you'd mask and reset per-env.
-                pass
+                done_mask = dones.bool().squeeze(-1) if dones.dim() > 1 else dones.bool()
+                if hasattr(self.actor_critic, 'actor') and hasattr(self.actor_critic.actor, '_membrane_states'):
+                    if self.actor_critic.actor._membrane_states is not None:
+                        for i, mem in enumerate(self.actor_critic.actor._membrane_states):
+                            mem[done_mask] = 0.0
             
             obs = next_obs
         

@@ -93,6 +93,13 @@ def main():
 
     # ---- Create environment ----
     env_cfg = parse_env_cfg(ENV_ID, device=device, num_envs=args.num_envs)
+
+    # Force forward walking — prevent "stand still" exploit
+    # Default (0.0, 1.0) allows zero velocity → robot learns to just stand
+    env_cfg.commands.base_velocity.ranges.lin_vel_x = (0.5, 1.0)
+    env_cfg.commands.base_velocity.ranges.lin_vel_y = (-0.3, 0.3)
+    env_cfg.commands.base_velocity.ranges.ang_vel_z = (-0.5, 0.5)
+
     env = gym.make(ENV_ID, cfg=env_cfg)
 
     # Get dimensions from env
