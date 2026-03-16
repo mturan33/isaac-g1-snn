@@ -41,12 +41,13 @@ parser.add_argument("--hidden_dims", type=int, nargs="+", default=[256, 128],
 
 # PPO hyperparameters
 parser.add_argument("--lr", type=float, default=3e-4)
-parser.add_argument("--rollout_steps", type=int, default=24)
+parser.add_argument("--lr_min", type=float, default=1e-5)
+parser.add_argument("--rollout_steps", type=int, default=48)
 parser.add_argument("--ppo_epochs", type=int, default=5)
 parser.add_argument("--minibatches", type=int, default=4)
 parser.add_argument("--clip_param", type=float, default=0.2)
 parser.add_argument("--gamma", type=float, default=0.99)
-parser.add_argument("--entropy_coef", type=float, default=0.01)
+parser.add_argument("--entropy_coef", type=float, default=0.005)
 
 # Logging
 parser.add_argument("--log_interval", type=int, default=10)
@@ -141,6 +142,8 @@ def main():
         act_dim=act_dim,
         device=device,
         lr=args.lr,
+        lr_min=args.lr_min,
+        max_iterations=args.max_iterations,
         num_steps_per_update=args.rollout_steps,
         num_epochs=args.ppo_epochs,
         num_minibatches=args.minibatches,
@@ -175,12 +178,14 @@ def main():
             fps = (iteration * args.rollout_steps * args.num_envs) / elapsed
             
             reward = metrics["misc/mean_reward"]
+            lr_now = metrics.get("misc/learning_rate", args.lr)
             print(
                 f"[Iter {iteration:5d}/{args.max_iterations}] "
                 f"Reward: {reward:+8.3f} | "
                 f"Policy Loss: {metrics['loss/policy']:.4f} | "
                 f"Value Loss: {metrics['loss/value']:.4f} | "
                 f"Entropy: {metrics['loss/entropy']:.4f} | "
+                f"LR: {lr_now:.1e} | "
                 f"FPS: {fps:.0f}"
             )
             

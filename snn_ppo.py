@@ -97,6 +97,8 @@ class SNNPPO:
         act_dim,
         device="cuda",
         lr=3e-4,
+        lr_min=1e-5,
+        max_iterations=5000,
         num_steps_per_update=24,
         num_epochs=5,
         num_minibatches=4,
@@ -118,13 +120,16 @@ class SNNPPO:
         self.entropy_coef = entropy_coef
         self.value_coef = value_coef
         self.max_grad_norm = max_grad_norm
-        
+
         self.optimizer = optim.Adam(actor_critic.parameters(), lr=lr)
-        
+        self.scheduler = optim.lr_scheduler.CosineAnnealingLR(
+            self.optimizer, T_max=max_iterations, eta_min=lr_min
+        )
+
         self.storage = RolloutStorage(
             num_steps_per_update, num_envs, obs_dim, act_dim, device
         )
-        
+
         # Tracking
         self.iteration = 0
         self.metrics = defaultdict(list)
@@ -252,9 +257,12 @@ class SNNPPO:
                 num_updates += 1
         
         self.iteration += 1
-        
+        self.scheduler.step()
+
         # Log metrics
+        current_lr = self.optimizer.param_groups[0]["lr"]
         metrics = {
+            "misc/learning_rate": current_lr,
             "loss/total": total_loss_epoch / num_updates,
             "loss/policy": total_policy_loss / num_updates,
             "loss/value": total_value_loss / num_updates,
