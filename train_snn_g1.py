@@ -112,6 +112,7 @@ def main():
     print(f"  Policy: {'MLP (baseline)' if args.use_mlp else 'SNN (LIF neurons)'}")
     print(f"  Obs dim: {obs_dim}, Act dim: {act_dim}")
     print(f"  Num envs: {args.num_envs}")
+    print(f"  PPO epochs: {args.ppo_epochs}, Clip: {args.clip_param}")
     if not args.use_mlp:
         print(f"  SNN timesteps: {args.num_steps}")
         print(f"  Beta init: {args.beta_init}")
